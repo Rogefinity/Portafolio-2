@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego del Ahorcado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 50px;
+        }
+        #palabra {
+            font-size: 24px;
+            letter-spacing: 2px;
+            margin: 20px 0;
+        }
+        #ahorcado {
+            margin: 20px 0;
+        }
+        #letras-adivinadas {
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Juego del Ahorcado</h1>
+    <div id="ahorcado"></div>
+    <div id="palabra"></div>
+    <input type="text" id="letraInput" maxlength="1" placeholder="Adivina una letra" />
+    <button onclick="adivinarLetra()">Adivinar</button>
+    <div id="letras-adivinadas"></div>
+    <div id="mensaje"></div>
+
+    <script>
+        const palabras = ["programacion", "computadora", "tecnologia", "sistema", "internet"];
+        let palabra = palabras[Math.floor(Math.random() * palabras.length)];
+        let adivinadas = "";
+        let fallos = 0;
+        const maxFallos = 6;
+
+        function mostrarProgreso() {
+            let progreso = "";
+            for (let letra of palabra) {
+                if (adivinadas.includes(letra)) {
+                    progreso += letra + " ";
+                } else {
+                    progreso += "_ ";
+                }
+            }
+            document.getElementById("palabra").innerText = progreso;
+            document.getElementById("letras-adivinadas").innerText = "Letras adivinadas: " + adivinadas;
+            dibujarAhorcado();
+        }
+
+        function dibujarAhorcado() {
+            const ahorcado = [
+                "----\n|   |\n|   \n|   \n|   \n--------", // 0 fallos
+                "----\n|   |\n|   O\n|   \n|   \n--------", // 1 fallo
+                "----\n|   |\n|   O\n|   |\n|   \n--------", // 2 fallos
+                "----\n|   |\n|   O\n|  /|\n|   \n--------", // 3 fallos
+                "----\n|   |\n|   O\n|  /|\\\n|   \n--------", // 4 fallos
+                "----\n|   |\n|   O\n|  /|\\\n|  / \n--------", // 5 fallos
+                "----\n|   |\n|   O\n|  /|\\\n|  / \\\n--------"  // 6 fallos
+            ];
+            document.getElementById("ahorcado").innerText = ahorcado[fallos];
+        }
+
+        function adivinarLetra() {
+            const letraInput = document.getElementById("letraInput");
+            const letra = letraInput.value.toLowerCase();
+            letraInput.value = "";
+            letraInput.focus();
+
+            if (letra && !adivinadas.includes(letra)) {
+                adivinadas += letra;
+                if (!palabra.includes(letra)) {
+                    fallos++;
+                }
+                mostrarProgreso();
+                verificarGanador();
+            } else {
+                alert("Letra ya adivinada o no válida.");
+            }
+        }
+
+        function verificarGanador() {
+            if (fallos === maxFallos) {
+                document.getElementById("mensaje").innerText = "¡Perdiste! La palabra era: " + palabra;
+            } else if (palabra.split("").every(letra => adivinadas.includes(letra))) {
+                document.getElementById("mensaje").innerText = "¡Felicidades, ganaste! La palabra era: " + palabra;
+            }
+        }
+
+        // Inicializar el juego
+        mostrarProgreso();
+    </script>
+</body>
+</html>
