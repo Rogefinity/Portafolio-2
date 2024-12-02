@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto Pac-Man</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #b56c1e; /* Color café */
+        }
+        h2 {
+            color: #8b5b29; /* Color café */
+            border-bottom: 2px solid #8b5b29;
+            padding-bottom: 10px;
+        }
+        .slide {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        pre {
+            background-color: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            overflow-x: auto;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Proyecto Pac-Man</h1>
+
+    <div class="slide">
+        <h2>Código del Juego</h2>
+        <pre>
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;cstdlib&gt;
+#include &lt;ctime&gt;
+#include &lt;algorithm&gt;
+#include &lt;unistd.h&gt;
+#include &lt;termios.h&gt;
+#include &lt;fstream&gt;
+#include &lt;string&gt;
+
+using namespace std;
+
+const int ROWS = 13;
+const int COLS = 15;
+
+char map[ROWS][COLS] = {
+    {'#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'},
+    {'#', '.', '.', '.', '.', '.', '#', '.', '.', '.', '.', '.', '.', '.', '#'},
+    {'#', '.', '#', '#', '#', '.', '#', '.', '#', '#', '#', '.', '#', '.', '#'},
+    {'#', '.', '#', '.', '.', '.', '.', '.', '.', '.', '#', '.', '#', '.', '#'},
+    {'#', '.', '#', '.', '#', '#', '#', '#', '.', '#', '#', '#', '#', '.', '#'},
+    {'#', '.', '#', '.', '.', '.', '.', '#', '.', '.', '.', '.', '#', '.', '#'},
+    {'#', '.', '#', '.', '#', '#', '.', '#', '#', '#', '.', '#', '#', '.', '#'},
+    {'#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#'},
+    {'#', '.', '#', '#', '#', '#', '.', '#', '#', '#', '#', '.', '#', '.', '#'},
+    {'#', '.', '#', '.', '.', '.', '.', '.', '.', '.', '.', '.', '#', '.', '#'},
+    {'#', '.', '#', '#', '#', '.', '#', '.', '#', '#', '#', '.', '#', '.', '#'},
+    {'#', '.', '.', '.', '.', '.', '#', '.', '.', '.', '.', '.', '.', '.', '#'},
+    {'#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#', '#'}
+};
+
+struct Position {
+    int x, y;
+};
+
+Position pacman = {1, 1};
+vector<Position> ghosts = {{13, 1}, {13, 11}};
+string playerName;
+int score = 0;
+int highScore = 0;
+int level = 1;
+
+void setNonCanonicalMode(bool enable) {
+    static struct termios oldt;
+    struct termios newt;
+    if (enable) {
+        tcgetattr(STDIN_FILENO, &oldt);
+        newt = oldt;
+        newt.c_lflag &= ~(ICANON | ECHO);
+        tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    } else {
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    }
+}
+
+bool isOccupiedByGhost(int x, int y) {
+    for (const auto& ghost : ghosts) {
+        if (ghost.x == x && ghost.y == y) return true;
+    }
+    return false;
+}
+
+void loadHighScore() {
+    ifstream file("highscore.txt");
+    if (file.is_open()) {
+        file >> highScore;
+        file.close();
+    }
+}
+
+void saveHighScore() {
+    ofstream file("highscore.txt");
+    if (file.is_open()) {
+        file << highScore;
+        file.close();
+    }
+}
+
+void savePlayerScore() {
+    ofstream file("scores.txt", ios::app);
+    if (file.is_open()) {
+        file << playerName << " " << score << " Nivel: " << level << endl;
+        file.close();
+    }
+}
+
+void drawMap() {
+    system("clear");
+    cout << "Jugador: " << playerName << " | Puntuación: " << score << " | Puntuación más alta: " << highScore << " | Nivel: " << level << endl;
+    for (int i = 0; i < ROWS; ++i) {
+        for (int j = 0; j < COLS; ++j) {
+            if (pacman.x == j && pacman.y == i) {
+                cout << 'P';
+            } else if (isOccupiedByGhost(j, i)) {
+                cout << 'G';
+            } else {
+                cout << map[i][j];
+            }
+        }
+        cout << endl;
+    }
+}
+
+void movePacman(char direction) {
+    int dx = 0, dy = 0;
+    switch (direction) {
+        case 'w': dy = -1; break;
+        case 's': dy = 1; break;
+        case 'a': dx = -1; break;
+        case 'd': dx = 1; break;
+    }
+
+    int newX = pacman.x + dx;
+    int newY = pacman.y + dy;
+    if (map[newY][newX] != '#') {
+        pacman.x = newX;
+        pacman.y = newY;
+        if (map[newY][newX] == '.') {
+            map[newY][newX] = ' ';
+            score += 10;
+        }
+    }
+}
+
+void moveGhosts() {
+    for (auto& ghost : ghosts) {
+        vector<Position> possibleMoves = {
+            {ghost.x, ghost.y - 1}, {ghost.x, ghost.y + 1},
+            {ghost.x - 1, ghost.y}, {ghost.x + 1, ghost.y}
+        };
+
+        sort(possibleMoves.begin(), possibleMoves.end(), [](const Position& a, const Position& b) {
+            int distA = abs(a.x - pacman.x) + abs(a.y - pacman.y);
+            int distB = abs(b.x - pacman.x) + abs(b.y - pacman.y);
+            return distA < distB;
+        });
+
+        for (const auto& move : possibleMoves) {
+            if (map[move.y][move.x] != '#' && !isOccupiedByGhost(move.x, move.y)) {
+                ghost.x = move.x;
+                ghost.y = move.y;
+                break;
+            }
+        }
+    }
+}
+
+bool checkCollision() {
+    for (const auto& ghost : ghosts) {
+        if (ghost.x == pacman.x && ghost.y == pacman.y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void increaseDifficulty() {
+    if (level == 2) {
+        ghosts.push_back({13, 7});
+    } else if (level == 3) {
+        ghosts.push_back({13, 7});
+        ghosts.push_back({7, 13});
+        ghosts.push_back({10, 7});
+    }
+}
+
+int main() {
+    srand(time(0));
+    loadHighScore();
+
+    cout << "Ingrese su nombre: ";
+    cin >> playerName;
+
+    cout << "Seleccione el nivel (1, 2, 3): ";
+    cin >> level;
+    increaseDifficulty();
+
+    setNonCanonicalMode(true);
+    char input = 'd';
+
+    while (true) {
+        if (read(STDIN_FILENO, &input, 1) > 0) {
+            movePacman(input);
+        }
+
+        moveGhosts();
+        drawMap();
+
+        if (checkCollision()) {
+            cout << "¡Perdiste! Un fantasma te atrapó." << endl;
+            if (score > highScore) {
+                cout << "¡Nueva puntuación más alta!" << endl;
+                highScore = score;
+                saveHighScore();
+            }
+            savePlayerScore();
+            break;
+        }
+
+        usleep(200000);
+    }
+
+    setNonCanonicalMode(false);
+    return 0;
+}
+        </pre>
+    </div>
+
+    <footer>
+        
+    </footer>
+
+</body>
+</html>

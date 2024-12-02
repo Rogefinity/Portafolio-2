@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modelo de Imagen Teachable Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #b56c1e; /* Color café */
+        }
+        h2 {
+            color: #8b5b29; /* Color café */
+            border-bottom: 2px solid #8b5b29;
+            padding-bottom: 10px;
+        }
+        .slide {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        #webcam-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #label-container {
+            text-align: center;
+            margin-top: 10px;
+        }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #b56c1e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Modelo de Imagen Teachable Machine</h1>
+
+    <div class="slide">
+        <h2>¿Qué es Teachable Machine?</h2>
+        <p>Teachable Machine es una herramienta creada por Google que permite a los usuarios entrenar modelos de aprendizaje automático sin necesidad de conocimientos avanzados en programación o inteligencia artificial. A través de una interfaz fácil de usar, los usuarios pueden cargar sus propios datos, entrenar un modelo y luego utilizarlo para realizar predicciones en tiempo real.</p>
+    </div>
+
+    <div class="slide">
+        <h2>¿Cómo funciona el modelo de imagen?</h2>
+        <p>El modelo de imagen de Teachable Machine utiliza la cámara web del usuario para capturar imágenes y analizarlas en tiempo real. Cuando se inicia el modelo, se activa la cámara, y el software identifica y clasifica lo que está viendo. A medida que se capturan las imágenes, el modelo compara las características visuales con las que ha aprendido durante el entrenamiento, proporcionando así etiquetas y probabilidades para cada clase de objeto.</p>
+    </div>
+
+    <div class="slide">
+        <h2>Pasos para usar el modelo</h2>
+        <ol>
+            <li>Entrenar tu modelo: Utiliza imágenes para enseñar al modelo a reconocer diferentes clases de objetos.</li>
+            <li>Configurar la cámara: Permite que el modelo acceda a tu cámara web para captar imágenes en tiempo real.</li>
+            <li>Iniciar la predicción: Una vez que la cámara esté activa, el modelo comenzará a hacer predicciones sobre los objetos que ve.</li>
+            <li>Interpretar los resultados: Las predicciones se mostrarán en pantalla, mostrando qué objeto se ha identificado y la probabilidad de que la identificación sea correcta.</li>
+        </ol>
+    </div>
+
+    <div class="slide">
+        <h2>Integración del Modelo de Imagen</h2>
+        <div>Teachable Machine Image Model</div>
+        <button type="button" onclick="init()">Start</button>
+        <div id="webcam-container"></div>
+        <div id="label-container"></div>
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+        <script type="text/javascript">
+            const URL = "./my_model/";
+
+            let model, webcam, labelContainer, maxPredictions;
+
+            async function init() {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                const flip = true; 
+                webcam = new tmImage.Webcam(200, 200, flip); 
+                await webcam.setup(); 
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                labelContainer = document.getElementById("label-container");
+                for (let i = 0; i < maxPredictions; i++) { 
+                    labelContainer.appendChild(document.createElement("div"));
+                }
+            }
+
+            async function loop() {
+                webcam.update(); 
+                await predict();
+                window.requestAnimationFrame(loop);
+            }
+
+            async function predict() {
+                const prediction = await model.predict(webcam.canvas);
+                for (let i = 0; i < maxPredictions; i++) {
+                    const classPrediction =
+                        prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                    labelContainer.childNodes[i].innerHTML = classPrediction;
+                }
+            }
+        </script>
+    </div>
+
+    <footer>
+       
+    </footer>
+
+</body>
+</html>
+
